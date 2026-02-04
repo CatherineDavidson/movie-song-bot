@@ -1,7 +1,10 @@
 import express from "express";
-import fetch from "node-fetch";
 import path from "path";
 import { fileURLToPath } from "url";
+import dns from "dns";
+
+// ✅ Fix common "fetch failed" issues due to IPv6/DNS on some networks/hosts
+dns.setDefaultResultOrder("ipv4first");
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -9,32 +12,120 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Serve frontend
-app.use(express.static(path.join(__dirname, "public")));
+/* ---------- HEALTH CHECK ---------- */
+app.get("/health", (_req, res) => {
+  res.json({ ok: true });
+});
 
-// Proxy endpoint
-app.get("/itunes", async (req, res) => {
+/* ---------- Helper: fetch with timeout ---------- */
+async function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
-    const url = req.query.url;
-    if (!url || !url.startsWith("https://itunes.apple.com/")) {
-      return res.status(400).json({ error: "Invalid iTunes URL" });
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    return response;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/* ---------- ITUNES SEARCH API ---------- */
+app.get("/api/itunes/search", async (req, res) => {
+  try {
+    const {
+      term,
+      entity = "album", // album | song
+      attribute = entity === "song" ? "songTerm" : "albumTerm",
+      limit = 10,
+    } = req.query;
+
+    if (!term || !String(term).trim()) {
+      return res.status(400).json({ error: "Missing search term" });
     }
 
-    const r = await fetch(url);
-    const data = await r.text();
+    const itunesUrl =
+      `https://itunes.apple.com/in/search?` +
+      `term=${encodeURIComponent(term)}` +
+      `&media=music` +
+      `&entity=${encodeURIComponent(entity)}` +
+      `&attribute=${encodeURIComponent(attribute)}` +
+      `&limit=${encodeURIComponent(limit)}`;
 
-    res.set("Access-Control-Allow-Origin", "*");
-    res.type("application/json").send(data);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+    const response = await fetchWithTimeout(
+      itunesUrl,
+      { headers: { "User-Agent": "Mozilla/5.0" } },
+      10000
+    );
+
+    const text = await response.text();
+
+    // Forward iTunes error status for debugging
+    if (!response.ok) {
+      return res.status(response.status).send(text);
+    }
+
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.send(text);
+  } catch (err) {
+    // Helpful error message
+    const msg =
+      err?.name === "AbortError"
+        ? "Upstream iTunes request timed out"
+        : err?.message || "Unknown server error";
+    res.status(500).json({ error: msg });
   }
 });
 
-// Fallback → index.html
+/* ---------- ITUNES LOOKUP API ---------- */
+app.get("/api/itunes/lookup", async (req, res) => {
+  try {
+    const { id } = req.query;
+
+    if (!id || !String(id).trim()) {
+      return res.status(400).json({ error: "Missing collectionId" });
+    }
+
+    const itunesUrl =
+      `https://itunes.apple.com/in/lookup?` +
+      `id=${encodeURIComponent(id)}` +
+      `&entity=song` +
+      `&limit=50`;
+
+    const response = await fetchWithTimeout(
+      itunesUrl,
+      { headers: { "User-Agent": "Mozilla/5.0" } },
+      10000
+    );
+
+    const text = await response.text();
+
+    if (!response.ok) {
+      return res.status(response.status).send(text);
+    }
+
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.send(text);
+  } catch (err) {
+    const msg =
+      err?.name === "AbortError"
+        ? "Upstream iTunes request timed out"
+        : err?.message || "Unknown server error";
+    res.status(500).json({ error: msg });
+  }
+});
+
+/* ---------- SERVE FRONTEND ---------- */
+app.use(express.static(path.join(__dirname, "public")));
+
+// Optional fallback so refreshing doesn't 404
 app.get("*", (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 app.listen(PORT, () => {
-  console.log("Server running on port", PORT);
+  console.log("Server running on http://localhost:" + PORT);
 });

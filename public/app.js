@@ -15,6 +15,34 @@ const voiceBtn = document.getElementById("voiceBtn");
 let currentPreviewUrl = null;
 let currentMeta = null;
 
+// ---------- API CALLS ----------
+// Backend base URL:
+// - Local + deployed (same server): location.origin
+// - If you open UI using Live Server (5500) while backend is 3000, set BACKEND = "http://localhost:3000"
+const BACKEND = location.origin;
+
+// Call /api/itunes/search
+async function apiSearch(term, entity, attribute, limit = 10) {
+  const url =
+    `${BACKEND}/api/itunes/search?term=${encodeURIComponent(term)}` +
+    `&entity=${encodeURIComponent(entity)}` +
+    `&attribute=${encodeURIComponent(attribute)}` +
+    `&limit=${encodeURIComponent(limit)}`;
+
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Search failed: ${res.status}`);
+  return res.json();
+}
+
+// Call /api/itunes/lookup
+async function apiLookup(collectionId) {
+  const url = `${BACKEND}/api/itunes/lookup?id=${encodeURIComponent(collectionId)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Lookup failed: ${res.status}`);
+  return res.json();
+}
+
+
 // ====== UI ======
 function addMsg(text, who = "bot") {
   const wrap = document.createElement("div");
@@ -42,16 +70,7 @@ function resetPlayer() {
 }
 
 // ====== PROXY FETCH ======
-// Requires proxy: http://localhost:3000/itunes?url=<encoded itunes url>
-async function proxyFetchJson(itunesUrl) {
-  const proxyUrl = `http://localhost:3000/itunes?url=${encodeURIComponent(itunesUrl)}`;
-  const res = await fetch(proxyUrl);
-  if (!res.ok) {
-    const txt = await res.text().catch(() => "");
-    throw new Error(`Proxy request failed (${res.status}). ${txt}`);
-  }
-  return res.json();
-}
+
 
 // ====== URL BUILDERS (India storefront) ======
 function itunesSearchUrl(term, entity, attribute) {
@@ -64,29 +83,25 @@ function itunesLookupUrl(collectionId) {
 }
 
 // ====== SEARCH LOGIC ======
-async function searchSoundtrackAlbum(movieName) {
-  const term = `${movieName} original motion picture soundtrack`;
-  const url = itunesSearchUrl(term, "album", "albumTerm");
-  const data = await proxyFetchJson(url);
-  return { resultCount: data.resultCount || 0, albums: data.results || [] };
+async function searchSoundtrackAlbum(movie) {
+  const term = `${movie} original motion picture soundtrack`;
+  const data = await apiSearch(term, "album", "albumTerm", 10);
+  return data.results || [];
 }
 
-async function lookupAlbumSongs(collectionId) {
-  const url = itunesLookupUrl(collectionId);
-  const data = await proxyFetchJson(url);
-  const songs = (data.results || []).filter(
+async function lookupSongs(collectionId) {
+  const data = await apiLookup(collectionId);
+  return (data.results || []).filter(
     r => r.wrapperType === "track" && r.previewUrl
   );
-  return { resultCount: data.resultCount || 0, songs };
 }
 
-async function fallbackSearchSongs(movieName) {
-  const term = `${movieName} song tamil`;
-  const url = itunesSearchUrl(term, "song", "songTerm");
-  const data = await proxyFetchJson(url);
-  const songs = (data.results || []).filter(r => r.previewUrl);
-  return { resultCount: data.resultCount || 0, songs };
+async function fallbackSongSearch(movie) {
+  const term = `${movie} song tamil`;
+  const data = await apiSearch(term, "song", "songTerm", 10);
+  return (data.results || []).filter(r => r.previewUrl);
 }
+
 
 function pickBestAlbum(albums, movieName) {
   if (!albums.length) return null;
