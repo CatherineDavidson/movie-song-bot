@@ -1,4 +1,3 @@
-
 // ====== DOM ======
 const movieInput = document.getElementById("movieInput");
 const sendBtn = document.getElementById("sendBtn");
@@ -42,7 +41,6 @@ async function apiLookup(collectionId) {
   return res.json();
 }
 
-
 // ====== UI ======
 function addMsg(text, who = "bot") {
   const wrap = document.createElement("div");
@@ -69,10 +67,8 @@ function resetPlayer() {
   stopBtn.disabled = true;
 }
 
-// ====== PROXY FETCH ======
-
-
 // ====== URL BUILDERS (India storefront) ======
+// (Not used right now, but kept as-is)
 function itunesSearchUrl(term, entity, attribute) {
   const t = encodeURIComponent(term);
   return `https://itunes.apple.com/in/search?term=${t}&media=music&entity=${entity}&attribute=${attribute}&limit=10`;
@@ -86,28 +82,28 @@ function itunesLookupUrl(collectionId) {
 async function searchSoundtrackAlbum(movie) {
   const term = `${movie} original motion picture soundtrack`;
   const data = await apiSearch(term, "album", "albumTerm", 10);
-  return data.results || [];
+  const results = Array.isArray(data?.results) ? data.results : [];
+  return results;
 }
 
 async function lookupSongs(collectionId) {
   const data = await apiLookup(collectionId);
-  return (data.results || []).filter(
-    r => r.wrapperType === "track" && r.previewUrl
-  );
+  const results = Array.isArray(data?.results) ? data.results : [];
+  return results.filter((r) => r.wrapperType === "track" && r.previewUrl);
 }
 
 async function fallbackSongSearch(movie) {
   const term = `${movie} song tamil`;
   const data = await apiSearch(term, "song", "songTerm", 10);
-  return (data.results || []).filter(r => r.previewUrl);
+  const results = Array.isArray(data?.results) ? data.results : [];
+  return results.filter((r) => r.previewUrl);
 }
-
 
 function pickBestAlbum(albums, movieName) {
   if (!albums.length) return null;
   const m = movieName.toLowerCase();
   return (
-    albums.find(a => (a.collectionName || "").toLowerCase().includes(m)) ||
+    albums.find((a) => (a.collectionName || "").toLowerCase().includes(m)) ||
     albums[0] ||
     null
   );
@@ -115,19 +111,19 @@ function pickBestAlbum(albums, movieName) {
 
 async function fetchPreviewForMovie(movieName) {
   // 1) Album search (best)
-  const albumSearch = await searchSoundtrackAlbum(movieName);
+  const albums = await searchSoundtrackAlbum(movieName);
 
-  if (albumSearch.albums.length) {
-    const bestAlbum = pickBestAlbum(albumSearch.albums, movieName);
+  if (albums.length) {
+    const bestAlbum = pickBestAlbum(albums, movieName);
 
     if (bestAlbum?.collectionId) {
-      const lookup = await lookupAlbumSongs(bestAlbum.collectionId);
+      const songs = await lookupSongs(bestAlbum.collectionId);
 
-      if (lookup.songs.length) {
-        const track = lookup.songs[0];
+      if (songs.length) {
+        const track = songs[0];
         return {
           source: "album_lookup",
-          debug: `AlbumSearch=${albumSearch.resultCount}, AlbumTracks=${lookup.resultCount}`,
+          debug: `AlbumResults=${albums.length}, SongsWithPreview=${songs.length}`,
           album: bestAlbum.collectionName,
           song: track.trackName,
           artist: track.artistName,
@@ -138,13 +134,13 @@ async function fetchPreviewForMovie(movieName) {
   }
 
   // 2) Fallback song search
-  const songSearch = await fallbackSearchSongs(movieName);
+  const fallbackSongs = await fallbackSongSearch(movieName);
 
-  if (songSearch.songs.length) {
-    const track = songSearch.songs[0];
+  if (fallbackSongs.length) {
+    const track = fallbackSongs[0];
     return {
       source: "song_search",
-      debug: `SongSearch=${songSearch.resultCount}`,
+      debug: `FallbackSongsWithPreview=${fallbackSongs.length}`,
       album: track.collectionName,
       song: track.trackName,
       artist: track.artistName,
@@ -158,6 +154,7 @@ async function fetchPreviewForMovie(movieName) {
 // ====== MAIN SEARCH HANDLER ======
 async function handleSearch(movieNameOverride = null) {
   const movieName = normalize(movieNameOverride ?? movieInput.value);
+
   if (!movieName) {
     addMsg("Type a movie name da 😄", "bot");
     return;
@@ -202,8 +199,8 @@ async function handleSearch(movieNameOverride = null) {
     addMsg(
       `Error: ${err.message}\n\n` +
         `Checklist:\n` +
-        `1) Proxy running on http://localhost:3000 ?\n` +
-        `2) Your network may block itunes.apple.com\n`,
+        `1) Open UI from http://localhost:3000 (same as server)\n` +
+        `2) Proxy/API routes must be running (/api/itunes/search)\n`,
       "bot"
     );
   }
@@ -211,6 +208,7 @@ async function handleSearch(movieNameOverride = null) {
 
 // ====== BUTTON EVENTS ======
 sendBtn.addEventListener("click", () => handleSearch());
+
 movieInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") handleSearch();
 });
@@ -247,7 +245,7 @@ if (voiceBtn) {
     }
 
     const rec = new SpeechRecognition();
-    rec.lang = "en-IN"; // You can try "ta-IN" if available in your Chrome
+    rec.lang = "en-IN"; // Try "ta-IN" if available in your Chrome
     rec.interimResults = false;
     rec.maxAlternatives = 1;
 
@@ -263,10 +261,6 @@ if (voiceBtn) {
 
     rec.onerror = (e) => {
       addMsg(`Voice error: ${e.error || "Unknown"}. Try again.`, "bot");
-    };
-
-    rec.onend = () => {
-      // optional: you can show a message when it stops listening
     };
   });
 }
