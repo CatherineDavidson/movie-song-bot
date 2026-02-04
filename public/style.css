@@ -41,3 +41,128 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   margin-top:12px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;
 }
 audio{ width: 360px; max-width:100%; }
+
+.wrap {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* Input row becomes stack on mobile */
+.row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+  flex-wrap: wrap;       /* key */
+}
+
+.row input {
+  flex: 1 1 260px;       /* grows, but can shrink */
+  min-width: 0;          /* prevents overflow */
+}
+
+.row button {
+  flex: 0 0 auto;
+}
+
+/* Player area responsive */
+.player {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;       /* key */
+}
+
+audio {
+  width: 100%;
+  max-width: 520px;      /* looks good on desktop */
+}
+
+/* Search input (base) */
+input {
+  flex: 1;
+  padding: 10px 12px;      /* 🔻 reduced */
+  height: 44px;            /* 🔻 fixed height */
+  border-radius: 12px;
+  border: 1px solid #2a3a72;
+  background: #0e1530;
+  color: #fff;
+  font-size: 15px;         /* 🔻 smaller font */
+}
+.chat {
+  margin-top: 18px;          /* more gap from search */
+  height: 240px;
+  overflow: auto;
+  padding: 12px;
+  border-radius: 12px;
+  background: #0b122a;       /* slightly darker than input */
+  border: 1px solid #2a3a72;
+}
+
+@media (max-width: 600px) {
+  .wrap {
+    padding: 12px;
+  }
+
+  .card {
+    padding: 12px;
+    border-radius: 14px;
+  }
+
+  /* Stack search neatly */
+  .row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  input {
+    height: 40px;            /* 🔻 compact */
+    font-size: 14px;
+    padding: 8px 10px;
+    border-radius: 10px;
+  }
+
+  .row button {
+    height: 40px;
+    font-size: 14px;
+    border-radius: 10px;
+    width: 100%;
+  }
+
+  /* Chat area smaller than search visually */
+  .chat {
+    height: 200px;           /* 🔻 reduced */
+    font-size: 14px;
+  }
+
+  /* Message bubbles */
+  .bubble {
+    max-width: 100%;
+    font-size: 14px;
+    padding: 8px 10px;
+  }
+
+  /* Player section */
+  .player {
+    gap: 8px;
+  }
+
+  .player button {
+    height: 40px;
+    font-size: 14px;
+    width: 100%;
+  }
+
+  audio {
+    width: 100%;
+  }
+}
+
+
+@media (max-width: 380px) {
+  header h1 { font-size: 1.2rem; }
+  input, button { font-size: 15px; }
+}
+
