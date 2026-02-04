@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Movie → Song Preview Bot</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <h1>🎬 CineTune 🎵 </h1>
+      <p>Type a movie name. I’ll fetch a song preview (30 sec) and play it.</p>
+    </header>
+
+    <section class="card">
+      <div class="row">
+        <input id="movieInput" type="text" placeholder="Eg: Leo, Vikram, Jailer..." />
+        <button id="voiceBtn">🎙️ Voice Input</button>
+        <button id="sendBtn">Search</button>
+      </div>
+
+      <div id="chat" class="chat"></div>
+
+      <div class="player">
+        <audio id="audio" controls></audio>
+        <button id="playBtn" disabled>▶ Play Preview</button>
+        <button id="stopBtn" disabled>⛔ Stop</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

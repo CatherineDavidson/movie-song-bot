@@ -1,0 +1,43 @@
+* { box-sizing: border-box; font-family: system-ui, Arial; }
+body { margin: 0; background: #0b1020; color: #fff; }
+.wrap { max-width: 920px; margin: 0 auto; padding: 24px; }
+
+.top h1 { margin: 0 0 8px; }
+.top p { margin: 0 0 18px; opacity: 0.85; }
+
+.card{
+  background:#121a33; border:1px solid #22305b;
+  border-radius:16px; padding:16px;
+  box-shadow:0 12px 30px rgba(0,0,0,0.35);
+}
+
+.row { display:flex; gap:10px; }
+input{
+  flex:1; padding:12px 14px; border-radius:12px;
+  border:1px solid #2a3a72; background:#0e1530; color:#fff;
+}
+button{
+  padding:12px 14px; border-radius:12px;
+  border:1px solid #2a3a72; background:#1b2a5a; color:#fff;
+  cursor:pointer;
+}
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.chat{
+  margin-top:14px; height:280px; overflow:auto;
+  padding:12px; border-radius:12px;
+  background:#0e1530; border:1px solid #2a3a72;
+}
+
+.msg{ margin:8px 0; display:flex; }
+.msg.user{ justify-content:flex-end; }
+.bubble{
+  max-width:80%; padding:10px 12px; border-radius:14px; white-space:pre-line;
+}
+.user .bubble{ background:#2b5cff; }
+.bot .bubble{ background:#24305a; }
+
+.player{
+  margin-top:12px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+}
+audio{ width: 360px; max-width:100%; }
